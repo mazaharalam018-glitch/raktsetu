@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>🩸 RaktSetu — Real-Time Blood Emergency Connect</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0A0A0F;color:#F0F0F8;font-family:'Syne',sans-serif;overflow-x:hidden}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:#111}::-webkit-scrollbar-thumb{background:#CC0000;border-radius:2px}
+@keyframes pulse-ring{0%{transform:scale(1);opacity:1}100%{transform:scale(3);opacity:0}}
+@keyframes fadeSlideIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeSlideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes heartbeat{0%,100%{transform:scale(1)}14%{transform:scale(1.15)}28%{transform:scale(1)}42%{transform:scale(1.1)}70%{transform:scale(1)}}
+@keyframes sosPulse{0%,100%{box-shadow:0 0 0 0 rgba(220,0,0,0.7)}50%{box-shadow:0 0 0 20px rgba(220,0,0,0)}}
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+@keyframes countUp{from{opacity:0;transform:scale(0.5)}to{opacity:1;transform:scale(1)}}
+@keyframes ripple{0%{transform:scale(0.8);opacity:1}100%{transform:scale(2.5);opacity:0}}
+@keyframes glowPulse{0%,100%{opacity:0.4}50%{opacity:1}}
+@keyframes barGrow{from{width:0}to{width:60%}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.nav-btn{background:none;border:none;cursor:pointer;padding:8px 14px;border-radius:8px;font-family:'Syne',sans-serif;font-size:12px;font-weight:600;letter-spacing:0.5px;transition:all 0.2s;color:#888}
+.nav-btn:hover{color:#fff;background:rgba(255,255,255,0.05)}
+.nav-btn.active{color:#FF2233;background:rgba(255,34,51,0.12);border:1px solid rgba(255,34,51,0.3)}
+.card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:20px;transition:all 0.3s}
+.card:hover{border-color:rgba(255,34,51,0.3);background:rgba(255,255,255,0.05)}
+.btn-primary{background:linear-gradient(135deg,#CC0000,#FF2233);border:none;color:#fff;padding:12px 24px;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;cursor:pointer;font-size:14px;transition:all 0.2s;letter-spacing:0.5px}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(204,0,0,0.4)}
+.input-field{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 14px;color:#F0F0F8;font-family:'Syne',sans-serif;font-size:13px;width:100%;transition:all 0.2s}
+.input-field:focus{outline:none;border-color:rgba(255,34,51,0.5);background:rgba(255,255,255,0.08)}
+.badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:0.5px}
+.donor-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px;cursor:pointer;transition:all 0.25s}
+.donor-card:hover{transform:translateY(-3px);border-color:rgba(255,34,51,0.4);box-shadow:0 10px 30px rgba(255,34,51,0.1)}
+.tab-content{animation:fadeSlideIn 0.35s ease forwards}
+select option{background:#1a1a2e;color:#F0F0F8}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect,useRef}=React;
+const BLOOD_GROUPS=["A+","A-","B+","B-","AB+","AB-","O+","O-"];
+const initStock={"A+":45,"A-":12,"B+":38,"B-":8,"AB+":22,"AB-":5,"O+":60,"O-":15};
+const initDonors=[
+  {id:1,name:"Arjun Sharma",blood:"O+",city:"Lucknow",phone:"9876543210",available:true,lastDonated:"2024-10-15",donations:7,x:30,y:40},
+  {id:2,name:"Priya Singh",blood:"A+",city:"Lucknow",phone:"9876543211",available:true,lastDonated:"2024-11-20",donations:3,x:55,y:30},
+  {id:3,name:"Rahul Gupta",blood:"B+",city:"Lucknow",phone:"9876543212",available:false,lastDonated:"2025-01-10",donations:5,x:70,y:55},
+  {id:4,name:"Neha Verma",blood:"AB+",city:"Lucknow",phone:"9876543213",available:true,lastDonated:"2024-09-05",donations:2,x:45,y:65},
+  {id:5,name:"Vikram Yadav",blood:"O-",city:"Lucknow",phone:"9876543214",available:true,lastDonated:"2024-12-01",donations:9,x:20,y:60},
+  {id:6,name:"Anjali Tiwari",blood:"A-",city:"Lucknow",phone:"9876543215",available:true,lastDonated:"2025-02-14",donations:4,x:65,y:25},
+  {id:7,name:"Mohit Kumar",blood:"B-",city:"Lucknow",phone:"9876543216",available:false,lastDonated:"2024-08-30",donations:1,x:38,y:20},
+  {id:8,name:"Sonia Mishra",blood:"O+",city:"Lucknow",phone:"9876543217",available:true,lastDonated:"2025-01-28",donations:6,x:80,y:70},
+];
+const initReqs=[
+  {id:1,patient:"Ram Lal",blood:"O+",hospital:"KGMU Lucknow",units:2,urgency:"critical",time:"2 min ago",status:"active"},
+  {id:2,patient:"Sunita Devi",blood:"A+",hospital:"Medanta Lucknow",units:1,urgency:"urgent",time:"15 min ago",status:"active"},
+  {id:3,patient:"Rakesh Pandey",blood:"B-",hospital:"Sahara Hospital",units:3,urgency:"normal",time:"1 hr ago",status:"fulfilled"},
+];
+const initHosp=[
+  {id:1,name:"KGMU Lucknow",stock:{"O+":5,"A+":12,"B+":8,"AB+":3,"O-":2,"A-":4,"B-":1,"AB-":0},x:35,y:45},
+  {id:2,name:"Medanta Lucknow",stock:{"O+":15,"A+":6,"B+":20,"AB+":7,"O-":3,"A-":2,"B-":5,"AB-":1},x:60,y:35},
+  {id:3,name:"Sahara Hospital",stock:{"O+":0,"A+":4,"B+":2,"AB+":9,"O-":0,"A-":8,"B-":0,"AB-":2},x:75,y:60},
+];
+const bgColors={"A+":"#FF6B6B","A-":"#FF8E53","B+":"#4ECDC4","B-":"#45B7D1","AB+":"#A855F7","AB-":"#EC4899","O+":"#F59E0B","O-":"#10B981"};
+
+function App(){
+  const[tab,setTab]=useState("dashboard");
+  const[stock,setStock]=useState(initStock);
+  const[donors,setDonors]=useState(initDonors);
+  const[reqs,setReqs]=useState(initReqs);
+  const hosp=initHosp;
+  const[sosActive,setSosActive]=useState(false);
+  const[sosBlood,setSosBlood]=useState("O+");
+  const[sosAlert,setSosAlert]=useState(null);
+  const[notifs,setNotifs]=useState([]);
+  const[live,setLive]=useState([]);
+  const[regForm,setRegForm]=useState({name:"",blood:"A+",phone:"",city:"Lucknow"});
+  const[reqForm,setReqForm]=useState({patient:"",blood:"O+",hospital:"",units:1,urgency:"urgent"});
+  const[selDonor,setSelDonor]=useState(null);
+  const[filterBlood,setFilterBlood]=useState("all");
+  const[pulseIds,setPulseIds]=useState([]);
+  const[donorResp,setDonorResp]=useState(null);
+
+  useEffect(()=>{
+    const msgs=[
+      "🩸 New O+ donor registered in Hazratganj",
+      "✅ Emergency request fulfilled at KGMU",
+      "🚨 Critical B- shortage at Sahara Hospital",
+      "📍 Donor Arjun Sharma accepted request",
+      "🏥 Medanta updated blood inventory",
+      "💉 3 units of A+ transferred to SGPGI",
+      "🆘 SOS alert: AB- needed urgently",
+      "✅ Donor Priya Singh on way to Medanta",
+    ];
+    let i=0;
+    const iv=setInterval(()=>{
+      setLive(p=>[{id:Date.now(),msg:msgs[i%msgs.length],time:new Date().toLocaleTimeString()},...p.slice(0,6)]);
+      setStock(p=>{const u={...p};const bg=BLOOD_GROUPS[Math.floor(Math.random()*8)];u[bg]=Math.max(0,Math.min(99,(u[bg]||0)+(Math.random()>0.5?1:-1)));return u;});
+      i++;
+    },3000);
+    return()=>clearInterval(iv);
+  },[]);
+
+  const addNotif=(msg,type="info")=>{
+    const id=Date.now();
+    setNotifs(p=>[{id,msg,type},...p.slice(0,3)]);
+    setTimeout(()=>setNotifs(p=>p.filter(n=>n.id!==id)),5000);
+  };
+
+  const triggerSOS=()=>{
+    setSosActive(true);
+    const matched=donors.filter(d=>d.blood===sosBlood&&d.available);
+    setSosAlert({blood:sosBlood,matched});
+    setPulseIds(matched.map(d=>d.id));
+    addNotif(`🚨 SOS Alert sent! ${matched.length} donors notified for ${sosBlood}`,"critical");
+    setTimeout(()=>{
+      if(matched.length>0){setDonorResp(matched[0]);addNotif(`✅ ${matched[0].name} accepted your SOS!`,"success");}
+      setSosActive(false);
+    },4000);
+  };
+
+  const handleReg=()=>{
+    if(!regForm.name||!regForm.phone)return;
+    setDonors(p=>[...p,{id:Date.now(),...regForm,available:true,lastDonated:"Never",donations:0,x:20+Math.random()*60,y:20+Math.random()*60}]);
+    addNotif(`🎉 ${regForm.name} registered as donor!`,"success");
+    setRegForm({name:"",blood:"A+",phone:"",city:"Lucknow"});
+    setTab("donors");
+  };
+
+  const handleReq=()=>{
+    if(!reqForm.patient||!reqForm.hospital)return;
+    setReqs(p=>[{id:Date.now(),...reqForm,units:Number(reqForm.units),time:"Just now",status:"active"},...p]);
+    setStock(p=>({...p,[reqForm.blood]:Math.max(0,p[reqForm.blood]-reqForm.units)}));
+    addNotif(`🩸 Request raised for ${reqForm.blood}!`,"urgent");
+    setReqForm({patient:"",blood:"O+",hospital:"",units:1,urgency:"urgent"});
+  };
+
+  const filtDonors=filterBlood==="all"?donors:donors.filter(d=>d.blood===filterBlood);
+  const getLevel=v=>v===0?"empty":v<10?"critical":v<25?"low":"good";
+  const lvlColor={good:"#10B981",low:"#F59E0B",critical:"#EF4444",empty:"#6B7280"};
+
+  return(
+    <div style={{minHeight:"100vh",background:"#0A0A0F",position:"relative"}}>
+      {/* BG Glow */}
+      <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:0}}>
+        <div style={{position:"absolute",top:"-20%",left:"-10%",width:"50vw",height:"50vw",background:"radial-gradient(circle,rgba(180,0,0,0.08) 0%,transparent 70%)",borderRadius:"50%"}}/>
+        <div style={{position:"absolute",bottom:"-20%",right:"-10%",width:"40vw",height:"40vw",background:"radial-gradient(circle,rgba(100,0,150,0.06) 0%,transparent 70%)",borderRadius:"50%"}}/>
+      </div>
+
+      {/* Notifications */}
+      <div style={{position:"fixed",top:20,right:20,zIndex:9999,display:"flex",flexDirection:"column",gap:8}}>
+        {notifs.map(n=>(
+          <div key={n.id} style={{background:n.type==="critical"?"rgba(200,0,0,0.92)":n.type==="success"?"rgba(16,185,129,0.92)":"rgba(245,158,11,0.92)",padding:"10px 16px",borderRadius:10,fontSize:13,fontWeight:600,animation:"fadeSlideIn 0.3s ease",maxWidth:300,boxShadow:"0 4px 20px rgba(0,0,0,0.4)"}}>
+            {n.msg}
+          </div>
+        ))}
+      </div>
+
+      {/* Header */}
+      <header style={{position:"sticky",top:0,zIndex:100,background:"rgba(10,10,15,0.92)",backdropFilter:"blur(20px)",borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
+        <div style={{maxWidth:1280,margin:"0 auto",padding:"0 20px",display:"flex",alignItems:"center",justifyContent:"space-between",height:60}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:26,display:"inline-block",animation:"heartbeat 1.5s infinite"}}>🩸</span>
+            <div>
+              <div style={{fontSize:18,fontWeight:800,letterSpacing:"1px",background:"linear-gradient(90deg,#FF2233,#FF6644)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>RAKTSETU</div>
+              <div style={{fontSize:9,color:"#666",letterSpacing:"2px",fontFamily:"'Space Mono',monospace"}}>REAL-TIME BLOOD CONNECT</div>
+            </div>
+          </div>
+          <nav style={{display:"flex",gap:2,flexWrap:"wrap",justifyContent:"center"}}>
+            {[["dashboard","📊 Dashboard"],["map","📍 Live Map"],["donors","👥 Donors"],["requests","🚨 Requests"],["sos","🆘 SOS"],["register","➕ Register"]].map(([t,l])=>(
+              <button key={t} className={`nav-btn${tab===t?" active":""}`} onClick={()=>setTab(t)}>{l}</button>
+            ))}
+          </nav>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <div style={{width:8,height:8,borderRadius:"50%",background:"#10B981",boxShadow:"0 0 8px #10B981",animation:"glowPulse 2s infinite"}}/>
+            <span style={{fontSize:11,color:"#10B981",fontFamily:"'Space Mono',monospace"}}>LIVE</span>
+          </div>
+        </div>
+        {/* Ticker */}
+        <div style={{background:"rgba(204,0,0,0.15)",borderTop:"1px solid rgba(255,34,51,0.2)",overflow:"hidden",height:26,display:"flex",alignItems:"center"}}>
+          <span style={{fontSize:10,color:"#FF2233",fontWeight:700,padding:"0 12px",whiteSpace:"nowrap",fontFamily:"'Space Mono',monospace"}}>LIVE ▶</span>
+          <div style={{overflow:"hidden",flex:1}}>
+            <div style={{display:"flex",animation:"ticker 22s linear infinite",whiteSpace:"nowrap"}}>
+              {[...live,...live].map((u,i)=>(
+                <span key={i} style={{fontSize:11,color:"#ccc",marginRight:40,fontFamily:"'Space Mono',monospace"}}>{u.msg} <span style={{color:"#666"}}>• {u.time}</span></span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main style={{maxWidth:1280,margin:"0 auto",padding:"24px 20px",position:"relative",zIndex:1}}>
+
+        {/* ===== DASHBOARD ===== */}
+        {tab==="dashboard"&&(
+          <div className="tab-content">
+            {/* Stats */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:22}}>
+              {[
+                {label:"Total Donors",value:donors.length,icon:"👥",color:"#4ECDC4"},
+                {label:"Available Now",value:donors.filter(d=>d.available).length,icon:"✅",color:"#10B981"},
+                {label:"Active Requests",value:reqs.filter(r=>r.status==="active").length,icon:"🚨",color:"#FF2233"},
+                {label:"Critical Stock",value:Object.values(stock).filter(v=>v<10).length,icon:"⚠️",color:"#F59E0B"},
+              ].map((s,i)=>(
+                <div key={i} className="card" style={{animation:`fadeSlideUp ${0.1*i+0.2}s ease forwards`,opacity:0}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                    <div>
+                      <div style={{fontSize:11,color:"#666",marginBottom:6,letterSpacing:"0.5px"}}>{s.label.toUpperCase()}</div>
+                      <div style={{fontSize:34,fontWeight:800,color:s.color}}>{s.value}</div>
+                    </div>
+                    <span style={{fontSize:26}}>{s.icon}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Blood Inventory + Live Feed */}
+            <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:18,marginBottom:20}}>
+              <div className="card">
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
+                  <h3 style={{fontSize:14,fontWeight:700,letterSpacing:"1px"}}>🩸 LIVE BLOOD INVENTORY</h3>
+                  <span style={{fontSize:11,color:"#10B981",fontFamily:"'Space Mono',monospace"}}>● UPDATING</span>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
+                  {BLOOD_GROUPS.map(bg=>{
+                    const v=stock[bg]||0;const lv=getLevel(v);const cl=lvlColor[lv];
+                    return(
+                      <div key={bg} style={{background:`rgba(${lv==="good"?"16,185,129":lv==="low"?"245,158,11":lv==="critical"?"239,68,68":"107,114,128"},0.08)`,border:`1px solid ${cl}33`,borderRadius:12,padding:12,textAlign:"center"}}>
+                        <div style={{fontSize:18,fontWeight:800,color:cl,marginBottom:2}}>{bg}</div>
+                        <div style={{fontSize:26,fontWeight:800,color:cl,lineHeight:1}}>{v}</div>
+                        <div style={{fontSize:10,color:"#666",marginBottom:6}}>units</div>
+                        <div style={{height:3,background:"rgba(255,255,255,0.08)",borderRadius:2}}>
+                          <div style={{height:"100%",width:`${Math.min(100,(v/80)*100)}%`,background:cl,borderRadius:2,transition:"width 1s ease"}}/>
+                        </div>
+                        <div style={{fontSize:9,color:cl,marginTop:3,fontWeight:700}}>{lv.toUpperCase()}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="card" style={{display:"flex",flexDirection:"column",maxHeight:320,overflow:"hidden"}}>
+                <h3 style={{fontSize:14,fontWeight:700,letterSpacing:"1px",marginBottom:14}}>⚡ LIVE ACTIVITY</h3>
+                <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:7}}>
+                  {live.length===0&&<div style={{color:"#555",fontSize:13}}>Waiting...</div>}
+                  {live.map((u,i)=>(
+                    <div key={u.id} style={{background:"rgba(255,255,255,0.03)",borderRadius:8,padding:"8px 10px",borderLeft:"3px solid #FF2233",opacity:1-i*0.1}}>
+                      <div style={{fontSize:12,color:"#ddd"}}>{u.msg}</div>
+                      <div style={{fontSize:10,color:"#555",marginTop:2,fontFamily:"'Space Mono',monospace"}}>{u.time}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Requests */}
+            <div className="card">
+              <h3 style={{fontSize:14,fontWeight:700,letterSpacing:"1px",marginBottom:14}}>📋 RECENT BLOOD REQUESTS</h3>
+              <div style={{display:"flex",flexDirection:"column",gap:9}}>
+                {reqs.slice(0,4).map(r=>(
+                  <div key={r.id} style={{display:"flex",alignItems:"center",gap:14,padding:"11px 14px",background:"rgba(255,255,255,0.02)",borderRadius:10,border:`1px solid ${r.status==="fulfilled"?"rgba(16,185,129,0.2)":"rgba(255,34,51,0.15)"}`}}>
+                    <div style={{width:40,height:40,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",background:`${bgColors[r.blood]}22`,border:`2px solid ${bgColors[r.blood]}`,fontSize:12,fontWeight:800,color:bgColors[r.blood],flexShrink:0}}>{r.blood}</div>
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:700,fontSize:13}}>{r.patient}</div>
+                      <div style={{fontSize:11,color:"#777"}}>{r.hospital} • {r.units} unit{r.units>1?"s":""}</div>
+                    </div>
+                    <span className="badge" style={{background:r.urgency==="critical"?"rgba(220,0,0,0.2)":r.urgency==="urgent"?"rgba(245,158,11,0.2)":"rgba(16,185,129,0.2)",color:r.urgency==="critical"?"#FF4444":r.urgency==="urgent"?"#F59E0B":"#10B981"}}>{r.urgency.toUpperCase()}</span>
+                    <span className="badge" style={{background:r.status==="fulfilled"?"rgba(16,185,129,0.15)":"rgba(255,34,51,0.15)",color:r.status==="fulfilled"?"#10B981":"#FF2233"}}>{r.status.toUpperCase()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== LIVE MAP ===== */}
+        {tab==="map"&&(
+          <div className="tab-content">
+            <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:18}}>
+              <div className="card" style={{padding:0,overflow:"hidden"}}>
+                <div style={{padding:"14px 18px",borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
+                  <h3 style={{fontSize:14,fontWeight:700,letterSpacing:"1px"}}>📍 LIVE DONOR & HOSPITAL MAP — LUCKNOW</h3>
+                </div>
+                <div style={{position:"relative",height:480,background:"rgba(5,5,20,0.8)"}}>
+                  {[...Array(8)].map((_,i)=><div key={i} style={{position:"absolute",left:`${i*14}%`,top:0,bottom:0,borderLeft:"1px solid rgba(255,255,255,0.03)"}}/>)}
+                  {[...Array(6)].map((_,i)=><div key={i} style={{position:"absolute",top:`${i*18}%`,left:0,right:0,borderTop:"1px solid rgba(255,255,255,0.03)"}}/>)}
+                  <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",opacity:0.12}}>
+                    <line x1="0" y1="45%" x2="100%" y2="55%" stroke="#445" strokeWidth="10"/>
+                    <line x1="30%" y1="0" x2="60%" y2="100%" stroke="#445" strokeWidth="7"/>
+                    <line x1="0" y1="70%" x2="100%" y2="30%" stroke="#445" strokeWidth="6"/>
+                    <text x="10" y="20" fill="#556" fontSize="10" fontFamily="monospace">LUCKNOW CITY MAP</text>
+                  </svg>
+                  {hosp.map(h=>(
+                    <div key={h.id} style={{position:"absolute",left:`${h.x}%`,top:`${h.y}%`,transform:"translate(-50%,-50%)"}}>
+                      <div style={{width:34,height:34,borderRadius:8,background:"rgba(59,130,246,0.2)",border:"2px solid #3B82F6",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,boxShadow:"0 0 15px rgba(59,130,246,0.3)",cursor:"pointer"}}>🏥</div>
+                      <div style={{position:"absolute",top:"110%",left:"50%",transform:"translateX(-50%)",fontSize:9,color:"#3B82F6",whiteSpace:"nowrap",fontWeight:700,marginTop:2}}>{h.name.split(" ")[0]}</div>
+                    </div>
+                  ))}
+                  {donors.map(d=>(
+                    <div key={d.id} style={{position:"absolute",left:`${d.x}%`,top:`${d.y}%`,transform:"translate(-50%,-50%)"}} onClick={()=>setSelDonor(d)}>
+                      {pulseIds.includes(d.id)&&<div style={{position:"absolute",inset:-8,borderRadius:"50%",border:`2px solid ${bgColors[d.blood]}`,animation:"ripple 1s ease infinite"}}/>}
+                      <div style={{width:28,height:28,borderRadius:"50%",background:d.available?`${bgColors[d.blood]}33`:"rgba(100,100,100,0.2)",border:`2px solid ${d.available?bgColors[d.blood]:"#555"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:800,color:d.available?bgColors[d.blood]:"#666",cursor:"pointer",boxShadow:d.available?`0 0 10px ${bgColors[d.blood]}44`:"none"}}>{d.blood}</div>
+                    </div>
+                  ))}
+                  <div style={{position:"absolute",bottom:10,left:10,background:"rgba(0,0,0,0.75)",borderRadius:8,padding:"6px 12px",fontSize:11,display:"flex",gap:14}}>
+                    <span>🟢 Available</span><span>⚫ Unavailable</span><span>🏥 Hospital</span>
+                  </div>
+                </div>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:14}}>
+                {selDonor?(
+                  <div className="card" style={{animation:"fadeSlideIn 0.3s ease"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                      <h3 style={{fontSize:13,fontWeight:700}}>👤 DONOR PROFILE</h3>
+                      <button onClick={()=>setSelDonor(null)} style={{background:"none",border:"none",color:"#666",cursor:"pointer",fontSize:16}}>✕</button>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+                      <div style={{width:48,height:48,borderRadius:"50%",background:`${bgColors[selDonor.blood]}22`,border:`2px solid ${bgColors[selDonor.blood]}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:800,color:bgColors[selDonor.blood]}}>{selDonor.blood}</div>
+                      <div><div style={{fontWeight:700,fontSize:15}}>{selDonor.name}</div><div style={{fontSize:12,color:"#777"}}>{selDonor.city}</div></div>
+                    </div>
+                    {[["📞 Phone",selDonor.phone],["💉 Donations",selDonor.donations],["📅 Last Donated",selDonor.lastDonated],["✅ Status",selDonor.available?"Available":"Unavailable"]].map(([k,v])=>(
+                      <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid rgba(255,255,255,0.05)",fontSize:13}}>
+                        <span style={{color:"#777"}}>{k}</span>
+                        <span style={{fontWeight:600,color:k.includes("Status")?(selDonor.available?"#10B981":"#EF4444"):"#F0F0F8"}}>{String(v)}</span>
+                      </div>
+                    ))}
+                    {selDonor.available&&<button className="btn-primary" style={{width:"100%",marginTop:12}} onClick={()=>{addNotif(`📞 Contacting ${selDonor.name}...`,"success");setSelDonor(null);}}>📞 Contact Donor</button>}
+                  </div>
+                ):(
+                  <div className="card" style={{textAlign:"center",padding:24}}>
+                    <div style={{fontSize:30,marginBottom:8}}>🗺️</div>
+                    <div style={{fontSize:13,color:"#666"}}>Click any donor pin to view their profile</div>
+                  </div>
+                )}
+                <div className="card">
+                  <h3 style={{fontSize:13,fontWeight:700,letterSpacing:"1px",marginBottom:12}}>🏥 HOSPITAL STOCK</h3>
+                  {hosp.map(h=>{
+                    const crit=Object.entries(h.stock).filter(([,v])=>v===0);
+                    return(
+                      <div key={h.id} style={{marginBottom:10,padding:10,background:"rgba(255,255,255,0.02)",borderRadius:10}}>
+                        <div style={{fontSize:12,fontWeight:700,marginBottom:7,color:"#3B82F6"}}>{h.name}</div>
+                        <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                          {Object.entries(h.stock).map(([bg,v])=>(
+                            <span key={bg} className="badge" style={{background:v===0?"rgba(107,114,128,0.2)":v<5?"rgba(239,68,68,0.2)":"rgba(16,185,129,0.15)",color:v===0?"#666":v<5?"#EF4444":"#10B981",fontSize:10}}>{bg}:{v}</span>
+                          ))}
+                        </div>
+                        {crit.length>0&&<div style={{fontSize:10,color:"#EF4444",marginTop:5}}>⚠️ Out: {crit.map(([bg])=>bg).join(", ")}</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== DONORS ===== */}
+        {tab==="donors"&&(
+          <div className="tab-content">
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
+              <h2 style={{fontSize:18,fontWeight:800,letterSpacing:"1px"}}>👥 DONOR DIRECTORY</h2>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                <span style={{fontSize:12,color:"#777"}}>Filter:</span>
+                <select className="input-field" style={{width:"auto",padding:"6px 12px"}} value={filterBlood} onChange={e=>setFilterBlood(e.target.value)}>
+                  <option value="all">All Blood Groups</option>
+                  {BLOOD_GROUPS.map(bg=><option key={bg} value={bg}>{bg}</option>)}
+                </select>
+              </div>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))",gap:12}}>
+              {filtDonors.map((d,i)=>(
+                <div key={d.id} className="donor-card" style={{animation:`fadeSlideUp ${i*0.04}s ease both`}} onClick={()=>{setSelDonor(d);setTab("map");}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                    <div style={{width:44,height:44,borderRadius:"50%",background:`${bgColors[d.blood]}22`,border:`2px solid ${bgColors[d.blood]}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:800,color:bgColors[d.blood],flexShrink:0}}>{d.blood}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:700,fontSize:14,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{d.name}</div>
+                      <div style={{fontSize:12,color:"#777"}}>📍 {d.city}</div>
+                    </div>
+                    <span className="badge" style={{background:d.available?"rgba(16,185,129,0.15)":"rgba(107,114,128,0.15)",color:d.available?"#10B981":"#6B7280",flexShrink:0}}>{d.available?"AVAIL.":"UNAVAIL."}</span>
+                  </div>
+                  <div style={{display:"flex",gap:14,fontSize:11,color:"#777"}}>
+                    <span>💉 {d.donations} donations</span>
+                    <span>📅 {d.lastDonated}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ===== REQUESTS ===== */}
+        {tab==="requests"&&(
+          <div className="tab-content">
+            <div style={{display:"grid",gridTemplateColumns:"3fr 2fr",gap:18}}>
+              <div>
+                <h2 style={{fontSize:18,fontWeight:800,letterSpacing:"1px",marginBottom:18}}>🚨 BLOOD REQUESTS</h2>
+                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                  {reqs.map((r,i)=>(
+                    <div key={r.id} style={{background:"rgba(255,255,255,0.03)",border:`1px solid ${r.urgency==="critical"?"rgba(255,34,51,0.4)":r.urgency==="urgent"?"rgba(245,158,11,0.3)":"rgba(255,255,255,0.08)"}`,borderRadius:14,padding:16,animation:`fadeSlideUp ${i*0.05}s ease both`,boxShadow:r.urgency==="critical"?"0 0 20px rgba(255,34,51,0.07)":"none"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                        <div style={{display:"flex",gap:12,alignItems:"center"}}>
+                          <div style={{width:48,height:48,borderRadius:"50%",background:`${bgColors[r.blood]}22`,border:`2px solid ${bgColors[r.blood]}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,fontWeight:800,color:bgColors[r.blood],flexShrink:0}}>{r.blood}</div>
+                          <div>
+                            <div style={{fontWeight:700,fontSize:15}}>{r.patient}</div>
+                            <div style={{fontSize:12,color:"#777",marginTop:2}}>🏥 {r.hospital}</div>
+                            <div style={{fontSize:12,color:"#777"}}>💉 {r.units} unit{r.units>1?"s":""}</div>
+                          </div>
+                        </div>
+                        <div style={{textAlign:"right"}}>
+                          <span className="badge" style={{background:r.urgency==="critical"?"rgba(220,0,0,0.2)":r.urgency==="urgent"?"rgba(245,158,11,0.2)":"rgba(16,185,129,0.2)",color:r.urgency==="critical"?"#FF4444":r.urgency==="urgent"?"#F59E0B":"#10B981",display:"block",marginBottom:5}}>{r.urgency.toUpperCase()}</span>
+                          <span className="badge" style={{background:r.status==="fulfilled"?"rgba(16,185,129,0.15)":"rgba(255,34,51,0.15)",color:r.status==="fulfilled"?"#10B981":"#FF2233"}}>{r.status.toUpperCase()}</span>
+                          <div style={{fontSize:10,color:"#555",marginTop:5,fontFamily:"'Space Mono',monospace"}}>{r.time}</div>
+                        </div>
+                      </div>
+                      {r.status==="active"&&(
+                        <div style={{marginTop:10,display:"flex",gap:8}}>
+                          <button className="btn-primary" style={{fontSize:12,padding:"7px 14px"}} onClick={()=>{setReqs(p=>p.map(x=>x.id===r.id?{...x,status:"fulfilled"}:x));addNotif(`✅ ${r.patient}'s request fulfilled!`,"success");}}>✅ Mark Fulfilled</button>
+                          <button style={{background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#ccc",padding:"7px 14px",borderRadius:8,cursor:"pointer",fontSize:12,fontFamily:"'Syne',sans-serif",fontWeight:600}} onClick={()=>{setTab("sos");setSosBlood(r.blood);}}>🆘 Trigger SOS</button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="card" style={{height:"fit-content",position:"sticky",top:90}}>
+                <h3 style={{fontSize:14,fontWeight:700,letterSpacing:"1px",marginBottom:16}}>➕ NEW REQUEST</h3>
+                <div style={{display:"flex",flexDirection:"column",gap:11}}>
+                  {[["Patient Name","text","patient","Enter patient name"],["Hospital Name","text","hospital","Hospital name"]].map(([lb,tp,k,ph])=>(
+                    <div key={k}><label style={{fontSize:11,color:"#777",marginBottom:5,display:"block"}}>{lb.toUpperCase()}</label><input type={tp} className="input-field" placeholder={ph} value={reqForm[k]} onChange={e=>setReqForm(p=>({...p,[k]:e.target.value}))}/></div>
+                  ))}
+                  <div><label style={{fontSize:11,color:"#777",marginBottom:5,display:"block"}}>BLOOD GROUP</label><select className="input-field" value={reqForm.blood} onChange={e=>setReqForm(p=>({...p,blood:e.target.value}))}>{BLOOD_GROUPS.map(bg=><option key={bg} value={bg}>{bg}</option>)}</select></div>
+                  <div><label style={{fontSize:11,color:"#777",marginBottom:5,display:"block"}}>UNITS NEEDED</label><input type="number" min={1} max={10} className="input-field" value={reqForm.units} onChange={e=>setReqForm(p=>({...p,units:e.target.value}))}/></div>
+                  <div><label style={{fontSize:11,color:"#777",marginBottom:5,display:"block"}}>URGENCY</label><select className="input-field" value={reqForm.urgency} onChange={e=>setReqForm(p=>({...p,urgency:e.target.value}))}><option value="normal">Normal</option><option value="urgent">Urgent</option><option value="critical">Critical</option></select></div>
+                  <button className="btn-primary" style={{marginTop:4}} onClick={handleReq}>🚨 Raise Request</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== SOS ===== */}
+        {tab==="sos"&&(
+          <div className="tab-content" style={{maxWidth:680,margin:"0 auto"}}>
+            <div style={{textAlign:"center",marginBottom:36}}>
+              <h2 style={{fontSize:26,fontWeight:800,letterSpacing:"2px",marginBottom:8}}>🆘 EMERGENCY SOS</h2>
+              <p style={{color:"#777",fontSize:14}}>Press the SOS button to instantly alert all nearby available donors</p>
+            </div>
+            <div className="card" style={{marginBottom:20}}>
+              <label style={{fontSize:11,color:"#777",marginBottom:10,display:"block",letterSpacing:"1px"}}>SELECT BLOOD GROUP NEEDED</label>
+              <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+                {BLOOD_GROUPS.map(bg=>(
+                  <button key={bg} onClick={()=>setSosBlood(bg)} style={{padding:"9px 16px",borderRadius:10,cursor:"pointer",fontWeight:700,fontFamily:"'Syne',sans-serif",fontSize:14,transition:"all 0.2s",background:sosBlood===bg?`${bgColors[bg]}33`:"rgba(255,255,255,0.03)",border:`2px solid ${sosBlood===bg?bgColors[bg]:"rgba(255,255,255,0.1)"}`,color:sosBlood===bg?bgColors[bg]:"#777",boxShadow:sosBlood===bg?`0 0 15px ${bgColors[bg]}44`:"none"}}>{bg}</button>
+                ))}
+              </div>
+            </div>
+            <div style={{display:"flex",justifyContent:"center",margin:"36px 0"}}>
+              <div style={{position:"relative"}}>
+                {sosActive&&(
+                  <>
+                    <div style={{position:"absolute",inset:-18,borderRadius:"50%",border:"3px solid #FF2233",animation:"pulse-ring 1s ease infinite"}}/>
+                    <div style={{position:"absolute",inset:-36,borderRadius:"50%",border:"2px solid #FF2233",animation:"pulse-ring 1s ease 0.3s infinite"}}/>
+                  </>
+                )}
+                <button onClick={!sosActive?triggerSOS:undefined} style={{width:150,height:150,borderRadius:"50%",cursor:sosActive?"not-allowed":"pointer",background:sosActive?"radial-gradient(circle,#990000,#CC0000)":"radial-gradient(circle,#CC0000,#FF2233)",border:"4px solid rgba(255,255,255,0.2)",fontSize:44,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",animation:sosActive?"sosPulse 0.8s ease infinite":"none",boxShadow:"0 0 40px rgba(204,0,0,0.5),inset 0 0 20px rgba(255,255,255,0.1)",transition:"all 0.2s"}}>
+                  <span>🆘</span>
+                  <span style={{fontSize:12,fontWeight:800,color:"#fff",letterSpacing:"2px",marginTop:4}}>{sosActive?"ALERTING...":"SOS"}</span>
+                </button>
+              </div>
+            </div>
+            {sosAlert&&(
+              <div>
+                <div className="card" style={{borderColor:"rgba(255,34,51,0.4)",marginBottom:14}}>
+                  <div style={{fontSize:14,fontWeight:700,color:"#FF2233",marginBottom:10}}>🚨 SOS SENT — {sosBlood} NEEDED</div>
+                  <div style={{fontSize:13,color:"#ccc",marginBottom:10}}>📡 Broadcasting to <strong style={{color:"#fff"}}>{sosAlert.matched.length} donors</strong> within 5km</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:7}}>
+                    {sosAlert.matched.map(d=>(
+                      <div key={d.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",background:"rgba(255,34,51,0.08)",borderRadius:10,border:"1px solid rgba(255,34,51,0.2)"}}>
+                        <div style={{width:34,height:34,borderRadius:"50%",background:`${bgColors[d.blood]}22`,border:`2px solid ${bgColors[d.blood]}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:800,color:bgColors[d.blood]}}>{d.blood}</div>
+                        <div style={{flex:1}}>
+                          <div style={{fontWeight:700,fontSize:13}}>{d.name}</div>
+                          <div style={{fontSize:11,color:"#777"}}>📞 {d.phone}</div>
+                        </div>
+                        <span style={{fontSize:12,color:"#F59E0B",fontWeight:700}}>🔔 Notified</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {donorResp&&(
+                  <div className="card" style={{borderColor:"rgba(16,185,129,0.4)",background:"rgba(16,185,129,0.05)",animation:"fadeSlideIn 0.5s ease"}}>
+                    <div style={{fontSize:14,fontWeight:700,color:"#10B981",marginBottom:8}}>✅ DONOR ACCEPTED!</div>
+                    <div style={{fontSize:15,fontWeight:700}}>{donorResp.name}</div>
+                    <div style={{fontSize:12,color:"#777",marginTop:3}}>📞 {donorResp.phone} • On their way!</div>
+                    <div style={{marginTop:10,height:4,background:"rgba(16,185,129,0.2)",borderRadius:2}}>
+                      <div style={{height:"100%",animation:"barGrow 2s ease forwards",background:"#10B981",borderRadius:2,width:0}}/>
+                    </div>
+                    <div style={{fontSize:12,color:"#10B981",marginTop:5}}>ETA: ~12 minutes</div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ===== REGISTER ===== */}
+        {tab==="register"&&(
+          <div className="tab-content" style={{maxWidth:560,margin:"0 auto"}}>
+            <div style={{textAlign:"center",marginBottom:28}}>
+              <div style={{fontSize:44,marginBottom:10,display:"inline-block",animation:"heartbeat 1.5s infinite"}}>🩸</div>
+              <h2 style={{fontSize:22,fontWeight:800,letterSpacing:"1px",marginBottom:8}}>BECOME A DONOR</h2>
+              <p style={{color:"#777",fontSize:14}}>Your one donation can save up to 3 lives. Register today.</p>
+            </div>
+            <div className="card">
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+                <div style={{gridColumn:"1 / -1"}}>
+                  <label style={{fontSize:11,color:"#777",marginBottom:5,display:"block"}}>FULL NAME *</label>
+                  <input type="text" className="input-field" placeholder="Enter your full name" value={regForm.name} onChange={e=>setRegForm(p=>({...p,name:e.target.value}))}/>
+                </div>
+                <div>
+                  <label style={{fontSize:11,color:"#777",marginBottom:5,display:"block"}}>BLOOD GROUP *</label>
+                  <select className="input-field" value={regForm.blood} onChange={e=>setRegForm(p=>({...p,blood:e.target.value}))}>{BLOOD_GROUPS.map(bg=><option key={bg} value={bg}>{bg}</option>)}</select>
+                </div>
+                <div>
+                  <label style={{fontSize:11,color:"#777",marginBottom:5,display:"block"}}>PHONE NUMBER *</label>
+                  <input type="tel" className="input-field" placeholder="10-digit number" value={regForm.phone} onChange={e=>setRegForm(p=>({...p,phone:e.target.value}))}/>
+                </div>
+                <div style={{gridColumn:"1 / -1"}}>
+                  <label style={{fontSize:11,color:"#777",marginBottom:5,display:"block"}}>CITY</label>
+                  <input type="text" className="input-field" placeholder="Your city" value={regForm.city} onChange={e=>setRegForm(p=>({...p,city:e.target.value}))}/>
+                </div>
+              </div>
+              {regForm.blood&&(
+                <div style={{margin:"16px 0",padding:14,borderRadius:12,background:`${bgColors[regForm.blood]}11`,border:`1px solid ${bgColors[regForm.blood]}33`,display:"flex",alignItems:"center",gap:12}}>
+                  <div style={{width:48,height:48,borderRadius:"50%",background:`${bgColors[regForm.blood]}22`,border:`2px solid ${bgColors[regForm.blood]}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:800,color:bgColors[regForm.blood]}}>{regForm.blood}</div>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:14,color:bgColors[regForm.blood]}}>{regForm.blood} Donor</div>
+                    <div style={{fontSize:12,color:"#777",marginTop:2}}>{regForm.blood==="O-"?"🌟 Universal donor — you can donate to everyone!":regForm.blood==="AB+"?"🌟 Universal recipient blood type!":`Compatible with ${regForm.blood} and other groups`}</div>
+                  </div>
+                </div>
+              )}
+              <button className="btn-primary" style={{width:"100%",padding:"13px",marginTop:4}} onClick={handleReg}>💉 Register as Donor</button>
+              <div style={{marginTop:18,display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,textAlign:"center"}}>
+                {[["❤️","Save Lives","1 donation = 3 lives"],["🔒","100% Safe","Verified process"],["📍","Local Match","Nearby patients"]].map(([ic,t,s])=>(
+                  <div key={t} style={{padding:10,background:"rgba(255,255,255,0.02)",borderRadius:10}}>
+                    <div style={{fontSize:18,marginBottom:3}}>{ic}</div>
+                    <div style={{fontSize:12,fontWeight:700}}>{t}</div>
+                    <div style={{fontSize:10,color:"#666",marginTop:1}}>{s}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+
+      <footer style={{textAlign:"center",padding:"20px",borderTop:"1px solid rgba(255,255,255,0.05)",color:"#444",fontSize:11,fontFamily:"'Space Mono',monospace",marginTop:40}}>
+        🩸 RAKTSETU — Real-Time Blood Emergency Connect | React + Django + MySQL + Python AI
+        <span style={{marginLeft:14,color:"#10B981"}}>● LIVE SYSTEM ACTIVE</span>
+      </footer>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
